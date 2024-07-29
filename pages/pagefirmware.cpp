@@ -254,6 +254,8 @@ void PageFirmware::updateHwList(FW_RX_PARAMS params)
         extraPath = "://res/firmwares_esp/ESP32-C3/STR365";
     } else if (params.hw == "VDisp") {
         extraPath = "://res/firmwares_esp/ESP32-C3/VDisp";
+    } else if (params.hw == "VDisp Dual") {
+        extraPath = "://res/firmwares_esp/ESP32-C3/VDisp Dual";
     }
 
     if (!extraPath.isEmpty()) {
@@ -552,6 +554,14 @@ void PageFirmware::uploadFw(bool allOverCan)
                                       tr("Upload Error"),
                                       tr("The selected file name seems to be invalid."));
                 return;
+            }
+
+            if (ui->fwCustomBlBox->isChecked() && mVesc->commands()->getLimitedSupportsEraseBootloader()) {
+                QListWidgetItem *item = ui->blList->currentItem();
+
+                if (item) {
+                    fileBl.setFileName(item->data(Qt::UserRole).toString());
+                }
             }
         } else {
             QListWidgetItem *item = ui->blList->currentItem();
