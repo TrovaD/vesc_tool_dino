@@ -133,6 +133,7 @@ Preferences::Preferences(QWidget *parent) :
 
     ui->uploadContentEditorButton->setChecked(mSettings.value("scripting/uploadContentEditor", true).toBool());
     ui->uploadContentFileButton->setChecked(!mSettings.value("scripting/uploadContentEditor", true).toBool());
+    ui->reconnectCanBox->setChecked(mSettings.value("reconnectLastCan", true).toBool());
 
     saveSettingsChanged();
 }
@@ -216,6 +217,7 @@ void Preferences::showEvent(QShowEvent *event)
     if (mVesc) {
         ui->loadQmlUiConnectBox->setChecked(mVesc->getLoadQmlUiOnConnect());
         ui->qmlUiAskBox->setChecked(mVesc->askQmlLoad());
+        ui->showFwUpdateBox->setChecked(mVesc->showFwUpdateAvailable());
     }
     event->accept();
 }
@@ -466,6 +468,9 @@ void Preferences::saveSettingsChanged()
     mLastScaling = mSettings.value("app_scale_factor", 1.0).toDouble();
     mLastIsDark = Utility::isDarkMode();
     mSettings.setValue("scripting/uploadContentEditor", ui->uploadContentEditorButton->isChecked());
+    mSettings.setValue("reconnectLastCan", ui->reconnectCanBox->isChecked());
+
+    mSettings.sync();
 }
 
 void Preferences::on_useImperialBox_toggled(bool checked)
@@ -475,3 +480,11 @@ void Preferences::on_useImperialBox_toggled(bool checked)
         mVesc->commands()->emitEmptySetupValues();
     }
 }
+
+void Preferences::on_showFwUpdateBox_toggled(bool checked)
+{
+    if (mVesc) {
+        mVesc->setShowFwUpdateAvailable(checked);
+    }
+}
+

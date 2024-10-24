@@ -24,6 +24,9 @@
 #include <QFileDialog>
 #include <QProgressDialog>
 #include <QDirIterator>
+#include <QDirIterator>
+#include <QScrollBar>
+
 
 PageVescPackage::PageVescPackage(QWidget *parent) :
     QWidget(parent),
@@ -78,12 +81,17 @@ PageVescPackage::PageVescPackage(QWidget *parent) :
 
 PageVescPackage::~PageVescPackage()
 {
+    saveStateToSettings();
+    delete ui;
+}
+
+void PageVescPackage::saveStateToSettings()
+{
     QSettings set;
     set.setValue("pagevescpackage/lastpkgload", ui->loadEdit->text());
     set.setValue("pagevescpackage/lastlisp", ui->lispEdit->text());
     set.setValue("pagevescpackage/lastqml", ui->qmlEdit->text());
     set.setValue("pagevescpackage/lastoutput", ui->outputEdit->text());
-    delete ui;
 }
 
 VescInterface *PageVescPackage::vesc() const
@@ -236,7 +244,7 @@ void PageVescPackage::on_loadRefreshButton_clicked()
 
     auto pkg = mLoader.unpackVescPackage(f.readAll());
 
-    if (!pkg.loadOk) {
+    if (!pkg.loadOk && mVesc) {
         mVesc->emitMessageDialog(tr("Open Package"), tr("Package is not valid."), false);
         return;
     }
@@ -264,7 +272,16 @@ void PageVescPackage::on_writeButton_clicked()
     dialog.setWindowModality(Qt::WindowModal);
     dialog.show();
 
+    QTimer closeStopTimer;
+    closeStopTimer.start(100);
+    auto conn1 = connect(&closeStopTimer, &QTimer::timeout, [&dialog]() {
+        if (!dialog.isVisible()) {
+            dialog.show();
+        }
+    });
+
     mLoader.installVescPackageFromPath(ui->loadEdit->text());
+    disconnect(conn1);
 }
 
 void PageVescPackage::on_outputRefreshButton_clicked()
@@ -366,7 +383,17 @@ void PageVescPackage::on_installButton_clicked()
         dialog.setWindowModality(Qt::WindowModal);
         dialog.show();
 
+        QTimer closeStopTimer;
+        closeStopTimer.start(100);
+        auto conn1 = connect(&closeStopTimer, &QTimer::timeout, [&dialog]() {
+            if (!dialog.isVisible()) {
+                dialog.show();
+            }
+        });
+
         mLoader.installVescPackage(mCurrentPkg);
+
+        disconnect(conn1);
 
         mVesc->emitMessageDialog(tr("Install Package"),
                                  tr("Installation Done!"),

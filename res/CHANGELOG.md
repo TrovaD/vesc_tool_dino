@@ -1,5 +1,12 @@
-### 6.05
+### 6.06
 #### Released TBD
+* Auto-save UI-state on regular intervals.
+* Movable lisp-tabs and better tab behavior in general.
+* Detect file system changes in script editor.
+* Duplicate line shortcut in script editor.
+
+### 6.05
+#### Released 2024-08-19
 * Scripting-setting to select whether to upload the editor content or file content.
 * Autocompletion and bracket matching completion improvements.
 * Support for selecting multiple files when saving and deleting files from the log browser.
@@ -19,6 +26,7 @@
 * Always remove trailing whitespaces on save in CodeEditor.
 * Comment block fix on windows and general improvements.
 * Added custom config and QML cache for faster connecting and CAN device switching.
+* Added option to reconnect to last CAN-device on connect.
 
 ---
 

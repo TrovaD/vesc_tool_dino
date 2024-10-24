@@ -270,25 +270,8 @@ QString Utility::uuid2Str(QByteArray uuid, bool space)
 
 bool Utility::requestFilePermission()
 {
-#ifdef Q_OS_ANDROID
-#if QT_VERSION >= QT_VERSION_CHECK(5, 10, 0)
-    // https://codereview.qt-project.org/#/c/199162/
-    QtAndroid::PermissionResult r = QtAndroid::checkPermission("android.permission.WRITE_EXTERNAL_STORAGE");
-    if(r == QtAndroid::PermissionResult::Denied) {
-        QtAndroid::requestPermissionsSync( QStringList() << "android.permission.WRITE_EXTERNAL_STORAGE", 10000);
-        r = QtAndroid::checkPermission("android.permission.WRITE_EXTERNAL_STORAGE");
-        if(r == QtAndroid::PermissionResult::Denied) {
-            return false;
-        }
-    }
-
+    // Not working since android 13, can only write files
     return true;
-#else
-    return true;
-#endif
-#else
-    return true;
-#endif
 }
 
 bool Utility::requestBleScanPermission()
@@ -556,7 +539,7 @@ QString Utility::detectAllFoc(VescInterface *vesc,
             case -100 + FAULT_CODE_DRV: reason = "DRV fault, hardware fault occured. Check there are no shorts"; break;
             case -100 + FAULT_CODE_ABS_OVER_CURRENT: reason = "Overcurrent fault, Check there are no shorts and ABS Overcurrent limit is sensible"; break;
             case -100 + FAULT_CODE_OVER_TEMP_FET: reason = "Mosfet Overtemperature fault, Mosfets overheated, check for shorts. Cool down device"; break;
-            case -100 + FAULT_CODE_OVER_TEMP_MOTOR: reason = "Motor Overtemperature fault, Motor overheaded, is the current limit OK?"; break;
+            case -100 + FAULT_CODE_OVER_TEMP_MOTOR: reason = "Motor Overtemperature fault, Motor overheated, is the current limit OK?"; break;
             case -100 + FAULT_CODE_GATE_DRIVER_OVER_VOLTAGE: reason = "Gate Driver over voltage, check for hardware failure"; break;
             case -100 + FAULT_CODE_GATE_DRIVER_UNDER_VOLTAGE: reason = "Gate Driver under voltage, check for hardware failure"; break;
             case -100 + FAULT_CODE_MCU_UNDER_VOLTAGE: reason = "MCU under voltage, check for hardware failure, shorts on outputs"; break;
@@ -1468,7 +1451,7 @@ uint32_t Utility::crc32c(uint8_t *data, uint32_t len)
     return ~crc;
 }
 
-bool Utility::getFwVersionBlocking(VescInterface *vesc, FW_RX_PARAMS *params)
+bool Utility::getFwVersionBlocking(VescInterface *vesc, FW_RX_PARAMS *params, int timeout)
 {
     bool res = false;
 
@@ -1484,7 +1467,7 @@ bool Utility::getFwVersionBlocking(VescInterface *vesc, FW_RX_PARAMS *params)
                vesc, SLOT(fwVersionReceived(FW_RX_PARAMS)));
 
     vesc->commands()->getFwVersion();
-    waitSignal(vesc->commands(), SIGNAL(fwVersionReceived(FW_RX_PARAMS)), 4000);
+    waitSignal(vesc->commands(), SIGNAL(fwVersionReceived(FW_RX_PARAMS)), timeout);
 
     disconnect(conn);
 
@@ -1494,10 +1477,10 @@ bool Utility::getFwVersionBlocking(VescInterface *vesc, FW_RX_PARAMS *params)
     return res;
 }
 
-bool Utility::getFwVersionBlockingCan(VescInterface *vesc, FW_RX_PARAMS *params, int canId)
+bool Utility::getFwVersionBlockingCan(VescInterface *vesc, FW_RX_PARAMS *params, int canId, int timeout)
 {
-    vesc->canTmpOverride(true, canId);
-    bool res = getFwVersionBlocking(vesc, params);
+    vesc->canTmpOverride(canId >= 0, canId);
+    bool res = getFwVersionBlocking(vesc, params, timeout);
     vesc->canTmpOverrideEnd();
     return res;
 }
@@ -1724,6 +1707,15 @@ void Utility::enuToLlh(const double *iLlh, const double *xyz, double *llh)
     double z = enuMat[2] * xyz[0] + enuMat[5] * xyz[1] + enuMat[8] * xyz[2] + iz;
 
     xyzToLlh(x, y, z, &llh[0], &llh[1], &llh[2]);
+}
+
+double Utility::distLlhToLlh(double lat, double lon, double height,
+                            double lat2, double lon2, double height2)
+{
+    double x, y, z, x2, y2, z2;
+    llhToXyz(lat, lon, height, &x, &y, &z);
+    llhToXyz(lat2, lon2, height2, &x2, &y2, &z2);
+    return sqrt(SQ(x - x2) + SQ(y - y2) + SQ(z - z2));
 }
 
 bool Utility::configCheckCompatibility(int fwMajor, int fwMinor)
